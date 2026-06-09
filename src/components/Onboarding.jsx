@@ -33,6 +33,29 @@ export default function Onboarding({ initialStep = 1, onComplete }) {
     }
   }, [initialStep]);
 
+const getFriendlyErrorMessage = (error) => {
+  if (!error) return 'An unexpected authentication error occurred.';
+  const code = error.code || '';
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'This email address is already registered. Please sign in instead.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Invalid email or password. Please verify your credentials.';
+    case 'auth/weak-password':
+      return 'Weak password. Password must be at least 6 characters.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in popup was closed. Please try again.';
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method is currently disabled.';
+    default:
+      return error.message ? error.message.replace('Firebase: ', '') : 'Authentication failed. Please try again.';
+  }
+};
+
   // Handle Email/Password Login & Signup
   const handleEmailAuth = async (e) => {
     e.preventDefault();
@@ -51,7 +74,7 @@ export default function Onboarding({ initialStep = 1, onComplete }) {
       setStep(2); // Go to Agent Sync
     } catch (err) {
       console.error(err);
-      setAuthError(err.message.replace('Firebase: ', ''));
+      setAuthError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -67,7 +90,7 @@ export default function Onboarding({ initialStep = 1, onComplete }) {
       setStep(2); // Go to Agent Sync
     } catch (err) {
       console.error(err);
-      setAuthError(err.message.replace('Firebase: ', ''));
+      setAuthError(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }
