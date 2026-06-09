@@ -232,7 +232,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
     
     // Step 1: Reasoning Mode
     setStatusText('Analyzing');
-    setAgentStatus({ polaris: 'Analyzing', nova: 'Idle', vega: 'Idle', atlas: 'Idle' });
+    setAgentProgress({ polaris: 'Analyzing', nova: 'Idle', vega: 'Idle', atlas: 'Idle' });
     setAgentGlow({ polaris: true, nova: false, vega: false, atlas: false });
 
     // Simulate ticking reasoning items
@@ -247,33 +247,33 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
     
     // Polaris Online
     setStatusText('Segmenting Customers');
-    setAgentStatus(prev => ({ ...prev, polaris: 'Analyzing segments' }));
+    setAgentProgress(prev => ({ ...prev, polaris: 'Analyzing segments' }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
-    setAgentStatus(prev => ({ ...prev, polaris: 'Complete' }));
+    setAgentProgress(prev => ({ ...prev, polaris: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, polaris: false }));
 
     // Vega Online
     setStatusText('Predicting Results');
-    setAgentStatus(prev => ({ ...prev, vega: 'Forecasting revenue' }));
+    setAgentProgress(prev => ({ ...prev, vega: 'Forecasting revenue' }));
     setAgentGlow(prev => ({ ...prev, vega: true }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
-    setAgentStatus(prev => ({ ...prev, vega: 'Complete' }));
+    setAgentProgress(prev => ({ ...prev, vega: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, vega: false }));
 
     // Nova Online
     setStatusText('Generating Campaign');
-    setAgentStatus(prev => ({ ...prev, nova: 'Drafting copy' }));
+    setAgentProgress(prev => ({ ...prev, nova: 'Drafting copy' }));
     setAgentGlow(prev => ({ ...prev, nova: true }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
-    setAgentStatus(prev => ({ ...prev, nova: 'Complete' }));
+    setAgentProgress(prev => ({ ...prev, nova: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, nova: false }));
 
     // Atlas Online
     setStatusText('Preparing Launch');
-    setAgentStatus(prev => ({ ...prev, atlas: 'Syncing channels' }));
+    setAgentProgress(prev => ({ ...prev, atlas: 'Syncing channels' }));
     setAgentGlow(prev => ({ ...prev, atlas: true }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
-    setAgentStatus(prev => ({ ...prev, atlas: 'Ready to launch' }));
+    setAgentProgress(prev => ({ ...prev, atlas: 'Ready to launch' }));
     setAgentGlow(prev => ({ ...prev, atlas: false }));
 
     // Complete / Ready State
@@ -294,7 +294,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
     if (autonomousMode) {
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStatusText('Campaign Active');
-      setAgentStatus(prev => ({ ...prev, atlas: 'Active dispatch' }));
+      setAgentProgress(prev => ({ ...prev, atlas: 'Active dispatch' }));
       setAgentGlow(prev => ({ ...prev, atlas: true }));
       
       // Auto write to firebase
@@ -322,7 +322,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
       ]);
       
       setTimeout(() => {
-        setAgentStatus(prev => ({ ...prev, atlas: 'Idle' }));
+        setAgentProgress(prev => ({ ...prev, atlas: 'Idle' }));
         setAgentGlow(prev => ({ ...prev, atlas: false }));
         setStatusText('Idle');
       }, 3000);
@@ -341,7 +341,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
   const handleLaunchCampaign = async (campaignData) => {
     setCampaignLaunched(true);
     setStatusText('Campaign Active');
-    setAgentStatus(prev => ({ ...prev, atlas: 'Active dispatch' }));
+    setAgentProgress(prev => ({ ...prev, atlas: 'Active dispatch' }));
     setAgentGlow(prev => ({ ...prev, atlas: true }));
 
     try {
@@ -361,7 +361,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
 
     setTimeout(() => {
       setCampaignLaunched(false);
-      setAgentStatus(prev => ({ ...prev, atlas: 'Idle' }));
+      setAgentProgress(prev => ({ ...prev, atlas: 'Idle' }));
       setAgentGlow(prev => ({ ...prev, atlas: false }));
       setStatusText('Idle');
     }, 4000);
