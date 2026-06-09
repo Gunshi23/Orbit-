@@ -111,6 +111,50 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
   });
   
   const [campaignLaunched, setCampaignLaunched] = useState(false);
+
+  // Redesign state additions
+  const [missionDetails, setMissionDetails] = useState({
+    goal: 'Standby',
+    status: 'System Ready',
+    progress: 0,
+    leadAgents: 'None',
+    estCompletion: '--'
+  });
+
+  const [agentTelemetry, setAgentTelemetry] = useState({
+    polaris: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+    nova: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+    vega: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+    atlas: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' }
+  });
+
+  const [launchSequenceActive, setLaunchSequenceActive] = useState(false);
+  const [launchStep, setLaunchStep] = useState(0);
+  const [expandedOutcomeIndex, setExpandedOutcomeIndex] = useState(-1);
+
+  // Live system stream values
+  const tickerEvents = [
+    "Polaris discovered a new audience cluster.",
+    "Nova generated campaign variant B.",
+    "Vega updated revenue forecast.",
+    "Atlas verified dispatch queue.",
+    "Polaris detected purchase pattern decay in cohort D.",
+    "Vega optimized lifetime value curve projections.",
+    "Nova polished creative message templates.",
+    "Atlas verified queue pipelines for SMS nodes.",
+    "System diagnostic check: Stable (0.002% packet loss).",
+    "Polaris created a micro-segment of 45 repeat buyers.",
+    "Vega detected a 4.2% lift in conversion probability."
+  ];
+  const [tickerIndex, setTickerIndex] = useState(0);
+
+  useEffect(() => {
+    const tickerInterval = setInterval(() => {
+      setTickerIndex(prev => (prev + 1) % tickerEvents.length);
+    }, 3500);
+    return () => clearInterval(tickerInterval);
+  }, []);
+
   
   // Live Feed Ambient Events
   const [liveEvents, setLiveEvents] = useState([
@@ -230,24 +274,64 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
       }
     }
     
+    // Set mission details initial
+    setMissionDetails({
+      goal: inputStr,
+      status: 'Analyzing Customer Universe',
+      progress: 0,
+      leadAgents: 'Polaris • Vega',
+      estCompletion: '6 Seconds'
+    });
+
     // Step 1: Reasoning Mode
     setStatusText('Analyzing');
     setAgentProgress({ polaris: 'Analyzing', nova: 'Idle', vega: 'Idle', atlas: 'Idle' });
     setAgentGlow({ polaris: true, nova: false, vega: false, atlas: false });
+    
+    setAgentTelemetry({
+      polaris: { task: 'Querying customer cohort...', status: 'Active', progress: 10, reasoning: 'Evaluating database records', confidence: '94%' },
+      nova: { task: 'Awaiting input...', status: 'Standby', progress: 0, reasoning: 'Pending Polaris analysis', confidence: '--' },
+      vega: { task: 'Awaiting input...', status: 'Standby', progress: 0, reasoning: 'Pending Polaris analysis', confidence: '--' },
+      atlas: { task: 'Awaiting input...', status: 'Standby', progress: 0, reasoning: 'Pending Polaris analysis', confidence: '--' }
+    });
 
     // Simulate ticking reasoning items
     for (let i = 0; i < selectedData.reasoning.length; i++) {
       await new Promise(resolve => setTimeout(resolve, autonomousMode ? 250 : 600));
-      setCompletedReasoningItems(prev => [...prev, selectedData.reasoning[i]]);
-      setReasoningProgress(((i + 1) / selectedData.reasoning.length) * 100);
+      const stepName = selectedData.reasoning[i];
+      setCompletedReasoningItems(prev => [...prev, stepName]);
+      const currentProgress = Math.floor(((i + 1) / selectedData.reasoning.length) * 100);
+      setReasoningProgress(currentProgress);
+
+      setAgentTelemetry(prev => ({
+        ...prev,
+        polaris: {
+          task: `Analyzing signal ${i + 1}/6: ${stepName}`,
+          status: 'Active',
+          progress: currentProgress,
+          reasoning: stepName,
+          confidence: '94%'
+        }
+      }));
+
+      setMissionDetails(prev => ({
+        ...prev,
+        status: `Polaris: ${stepName}`,
+        progress: Math.floor(currentProgress * 0.4),
+        estCompletion: `${Math.max(1, 6 - i)} Seconds`
+      }));
     }
 
     // Step 2: Agent Sync Sequence
     setCurrentStep(2);
     
-    // Polaris Online
+    // Polaris Online Complete
     setStatusText('Segmenting Customers');
     setAgentProgress(prev => ({ ...prev, polaris: 'Analyzing segments' }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      polaris: { task: `Identified cohort: ${selectedData.audience}`, status: 'Complete', progress: 100, reasoning: 'CDP segment locked', confidence: '94%' }
+    }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
     setAgentProgress(prev => ({ ...prev, polaris: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, polaris: false }));
@@ -256,29 +340,80 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
     setStatusText('Predicting Results');
     setAgentProgress(prev => ({ ...prev, vega: 'Forecasting revenue' }));
     setAgentGlow(prev => ({ ...prev, vega: true }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      vega: { task: 'Forecasting revenue lift opportunities', status: 'Active', progress: 50, reasoning: 'Calculating CLV trajectory curves', confidence: '92%' }
+    }));
+    setMissionDetails(prev => ({
+      ...prev,
+      status: 'Vega: Calculating predictive curves',
+      progress: 60,
+      leadAgents: 'Vega • Nova',
+      estCompletion: '4 Seconds'
+    }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
     setAgentProgress(prev => ({ ...prev, vega: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, vega: false }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      vega: { task: `Projected opportunity: ${selectedData.revenue}`, status: 'Complete', progress: 100, reasoning: 'ROI matrix locked', confidence: '92%' }
+    }));
 
     // Nova Online
     setStatusText('Generating Campaign');
     setAgentProgress(prev => ({ ...prev, nova: 'Drafting copy' }));
     setAgentGlow(prev => ({ ...prev, nova: true }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      nova: { task: 'Generating personalized copy variants', status: 'Active', progress: 60, reasoning: 'Creative personalization tokens', confidence: '88%' }
+    }));
+    setMissionDetails(prev => ({
+      ...prev,
+      status: 'Nova: Designing campaign models',
+      progress: 80,
+      leadAgents: 'Nova • Atlas',
+      estCompletion: '2 Seconds'
+    }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
     setAgentProgress(prev => ({ ...prev, nova: 'Complete' }));
     setAgentGlow(prev => ({ ...prev, nova: false }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      nova: { task: 'Campaign creative variations compiled', status: 'Complete', progress: 100, reasoning: 'Dynamic copy locked', confidence: '88%' }
+    }));
 
     // Atlas Online
     setStatusText('Preparing Launch');
     setAgentProgress(prev => ({ ...prev, atlas: 'Syncing channels' }));
     setAgentGlow(prev => ({ ...prev, atlas: true }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      atlas: { task: 'Checking API dispatch gateways', status: 'Active', progress: 80, reasoning: 'Validating carrier endpoints', confidence: '95%' }
+    }));
+    setMissionDetails(prev => ({
+      ...prev,
+      status: 'Atlas: Securing gateways',
+      progress: 95,
+      leadAgents: 'Atlas Core',
+      estCompletion: '1 Seconds'
+    }));
     await new Promise(resolve => setTimeout(resolve, autonomousMode ? 300 : 900));
     setAgentProgress(prev => ({ ...prev, atlas: 'Ready to launch' }));
     setAgentGlow(prev => ({ ...prev, atlas: false }));
+    setAgentTelemetry(prev => ({
+      ...prev,
+      atlas: { task: 'Gateways verified. Armed and ready', status: 'Complete', progress: 100, reasoning: 'Carrier queues ready', confidence: '95%' }
+    }));
 
     // Complete / Ready State
     setCurrentStep(3);
     setStatusText('Ready To Launch');
+    setMissionDetails(prev => ({
+      ...prev,
+      status: 'Console Armed. Awaiting launch sequence confirmation.',
+      progress: 100,
+      estCompletion: '0 Seconds'
+    }));
 
     // Add ORBIT Response to Chat
     setChatHistory(prev => [
@@ -296,6 +431,16 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
       setStatusText('Campaign Active');
       setAgentProgress(prev => ({ ...prev, atlas: 'Active dispatch' }));
       setAgentGlow(prev => ({ ...prev, atlas: true }));
+      setAgentTelemetry(prev => ({
+        ...prev,
+        atlas: { task: `Autopilot Dispatching to ${selectedData.audience}`, status: 'Active', progress: 100, reasoning: 'Auto deployment active', confidence: '95%' }
+      }));
+      setMissionDetails(prev => ({
+        ...prev,
+        status: 'Autopilot campaign active dispatch',
+        progress: 100,
+        estCompletion: '0 Seconds'
+      }));
       
       // Auto write to firebase
       try {
@@ -317,7 +462,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
         ...prev,
         {
           sender: 'system',
-          text: `⚡ Autonomous launch successful. Dispatching WhatsApp package to ${selectedData.audience}.`
+          text: `⚡ Autonomous launch successful. Dispatching ${selectedData.channel} package to ${selectedData.audience}.`
         }
       ]);
       
@@ -325,11 +470,25 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
         setAgentProgress(prev => ({ ...prev, atlas: 'Idle' }));
         setAgentGlow(prev => ({ ...prev, atlas: false }));
         setStatusText('Idle');
+        setAgentTelemetry({
+          polaris: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+          nova: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+          vega: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+          atlas: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' }
+        });
+        setMissionDetails({
+          goal: 'Standby',
+          status: 'System Ready',
+          progress: 0,
+          leadAgents: 'None',
+          estCompletion: '--'
+        });
       }, 3000);
     }
 
     setIsExecuting(false);
   };
+
 
   const handleSend = () => {
     if (!customInput.trim() || isExecuting) return;
@@ -339,10 +498,37 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
   };
 
   const handleLaunchCampaign = async (campaignData) => {
-    setCampaignLaunched(true);
-    setStatusText('Campaign Active');
-    setAgentProgress(prev => ({ ...prev, atlas: 'Active dispatch' }));
+    setLaunchSequenceActive(true);
+    setLaunchStep(0);
+    setStatusText('Launching');
+    setAgentProgress(prev => ({ ...prev, atlas: 'Locking parameters' }));
     setAgentGlow(prev => ({ ...prev, atlas: true }));
+
+    // Step 0: Initiating Launch Sequence...
+    await new Promise(r => setTimeout(r, 600));
+    setLaunchStep(1); // Audience Locked
+    setAgentProgress(prev => ({ ...prev, atlas: 'Audience locked' }));
+
+    await new Promise(r => setTimeout(r, 600));
+    setLaunchStep(2); // Campaign Approved
+    setAgentProgress(prev => ({ ...prev, atlas: 'Campaign approved' }));
+
+    await new Promise(r => setTimeout(r, 600));
+    setLaunchStep(3); // Channel Allocated
+    setAgentProgress(prev => ({ ...prev, atlas: 'Channel allocated' }));
+
+    await new Promise(r => setTimeout(r, 600));
+    setLaunchStep(4); // Dispatch Queue Verified
+    setAgentProgress(prev => ({ ...prev, atlas: 'Verifying queue' }));
+
+    await new Promise(r => setTimeout(r, 600));
+    setLaunchStep(5); // Atlas Dispatching
+    setAgentProgress(prev => ({ ...prev, atlas: 'Atlas dispatching' }));
+
+    await new Promise(r => setTimeout(r, 800));
+    setLaunchStep(6); // CAMPAIGN ACTIVE
+    setAgentProgress(prev => ({ ...prev, atlas: 'Active dispatch' }));
+    setStatusText('Campaign Active');
 
     try {
       await addDoc(collection(db, 'campaigns'), {
@@ -359,12 +545,32 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
       console.error('Error saving campaign to Firestore:', err);
     }
 
+    // Hold the completed state overlay for readability
+    await new Promise(r => setTimeout(r, 1600));
+    setLaunchSequenceActive(false);
+    setCampaignLaunched(true);
+
     setTimeout(() => {
       setCampaignLaunched(false);
       setAgentProgress(prev => ({ ...prev, atlas: 'Idle' }));
       setAgentGlow(prev => ({ ...prev, atlas: false }));
       setStatusText('Idle');
-    }, 4000);
+      
+      // Reset telemetry
+      setAgentTelemetry({
+        polaris: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+        nova: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+        vega: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' },
+        atlas: { task: 'System Standby', status: 'Standby', progress: 0, reasoning: 'Awaiting command', confidence: '--' }
+      });
+      setMissionDetails({
+        goal: 'Standby',
+        status: 'System Ready',
+        progress: 0,
+        leadAgents: 'None',
+        estCompletion: '--'
+      });
+    }, 3000);
   };
 
   // Voice synthesis simulator using Gemini Voice API
@@ -783,80 +989,143 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
         overflow: 'hidden',
         position: 'relative'
       }}>
-        {/* DYNAMIC MISSION STATUS BAR */}
+        {/* PERSISTENT MISSION CONTROL STATUS BANNER */}
         <div style={{
-          padding: '0.75rem 1.5rem',
           borderBottom: '1px solid var(--card-border)',
-          background: 'var(--bg-secondary)',
-          display: 'flex',
-          justifyContent: 'space-between',
+          background: 'rgba(11, 17, 32, 0.9)',
+          padding: '0.95rem 1.5rem',
+          display: 'grid',
+          gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr',
+          gap: '1rem',
           alignItems: 'center',
-          backdropFilter: 'blur(10px)',
-          zIndex: 5
+          backdropFilter: 'blur(15px)',
+          zIndex: 5,
+          position: 'relative'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-            <div style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: isExecuting ? '#eab308' : statusText === 'Campaign Active' ? '#10b981' : '#3b82f6',
-              boxShadow: isExecuting 
-                ? '0 0 10px #eab308' 
-                : statusText === 'Campaign Active' 
-                ? '0 0 10px #10b981' 
-                : '0 0 10px #3b82f6',
-              animation: 'pulse 1.2s infinite'
-            }} />
-            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: 'monospace' }}>
-              MISSION STATUS: <span style={{ 
-                color: isExecuting ? '#eab308' : statusText === 'Campaign Active' ? '#10b981' : '#60a5fa', 
-                fontWeight: 700 
-              }}>{statusText}</span>
+          {/* Column 1: Mission Goal / COMMAND */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.6rem', color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+              🚀 MISSION ACTIVE
+            </span>
+            <span style={{ 
+              fontSize: '0.78rem', 
+              fontWeight: 600, 
+              color: '#f3f4f6',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '220px'
+            }}>
+              {missionDetails.goal === 'Standby' ? 'Goal: Standby' : `Goal: ${missionDetails.goal}`}
+            </span>
+          </div>
+
+          {/* Column 2: Status Feed */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              STATUS
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: isExecuting ? '#eab308' : statusText === 'Campaign Active' ? '#10b981' : '#3b82f6',
+                boxShadow: isExecuting ? '0 0 8px #eab308' : statusText === 'Campaign Active' ? '0 0 8px #10b981' : '0 0 8px #3b82f6',
+                animation: 'pulse 1.2s infinite'
+              }} />
+              <span style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                color: isExecuting ? '#eab308' : statusText === 'Campaign Active' ? '#10b981' : '#3b82f6',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '120px'
+              }}>
+                {isExecuting ? 'ANALYZING' : statusText === 'Campaign Active' ? 'DISPATCHED' : 'STANDBY'}
+              </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            {/* AUTONOMOUS MODE TOGGLE */}
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}>
-              <input 
-                type="checkbox"
-                checked={autonomousMode}
-                onChange={(e) => setAutonomousMode(e.target.checked)}
-                style={{
-                  appearance: 'none',
-                  width: '32px',
-                  height: '16px',
-                  borderRadius: '99px',
-                  background: autonomousMode ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'background 0.3s',
-                  outline: 'none',
-                  border: '1px solid rgba(255,255,255,0.15)'
-                }}
-                className="autonomous-checkbox"
-              />
-              <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                color: autonomousMode ? '#3b82f6' : '#9ca3af',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.2rem'
-              }}>
-                <Zap size={10} fill={autonomousMode ? 'currentColor' : 'none'} /> ⚡ Autonomous Mode
-              </span>
-            </label>
-            <span style={{ fontSize: '0.7rem', color: '#4b5563', fontFamily: 'monospace' }}>SYSTEM VER: v3.2.1-SECURE</span>
+          {/* Column 3: Runtime Progress */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: '#9ca3af' }}>
+              <span>PROGRESS</span>
+              <span>{missionDetails.progress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ 
+                width: `${missionDetails.progress}%`, 
+                height: '100%', 
+                background: 'linear-gradient(to right, #3b82f6, #8b5cf6)', 
+                borderRadius: '2px',
+                transition: 'width 0.4s ease'
+              }} />
+            </div>
+          </div>
+
+          {/* Column 4: Lead Agents */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              LEAD AGENTS
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f3f4f6' }}>
+              {missionDetails.leadAgents}
+            </span>
+          </div>
+
+          {/* Column 5: Time Remaining */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2,rem', alignItems: 'flex-end' }}>
+            <span style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              EST. COMPLETION
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isExecuting ? '#eab308' : '#3b82f6', fontFamily: 'monospace' }}>
+              {missionDetails.estCompletion}
+            </span>
           </div>
         </div>
+
+        {/* AI OS STREAM ACTIVITY TICKER STRIP */}
+        <div style={{
+          background: 'rgba(5, 8, 22, 0.45)',
+          borderBottom: '1px solid var(--card-border)',
+          padding: '0.45rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          fontSize: '0.7rem',
+          fontFamily: 'monospace',
+          color: 'var(--text-secondary)',
+          zIndex: 4
+        }}>
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            color: '#3b82f6',
+            fontWeight: 700,
+            fontSize: '0.65rem',
+            letterSpacing: '0.05em'
+          }}>
+            <span style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: '#10b981',
+              boxShadow: '0 0 6px #10b981',
+              animation: 'pulse 1.2s infinite'
+            }} />
+            SYSTEM STREAM &gt;
+          </span>
+          <div style={{
+            animation: 'fadeInOut 3.5s infinite',
+            color: '#9ca3af'
+          }}>
+            {tickerEvents[tickerIndex]}
+          </div>
+        </div>
+
 
         {/* SUB-TABS ROUTING SCREEN */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -962,7 +1231,6 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                 position: 'relative'
               }}>
                 
-                {/* CHAT DISPLAY */}
                 <div style={{
                   flex: 1,
                   overflowY: 'auto',
@@ -972,7 +1240,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                   paddingRight: '0.5rem',
                   maxHeight: '450px'
                 }}>
-                  {/* EMPTY STATE */}
+                  {/* EMPTY STATE - GLOWING ORBIT CORE */}
                   {chatHistory.length === 0 && !isExecuting && (
                     <div style={{
                       display: 'flex',
@@ -984,47 +1252,126 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                       margin: 'auto 0',
                       animation: 'fadeIn 0.6s ease'
                     }}>
-                      {/* Animated Core */}
-                      <div style={{
+                      {/* Orbit Core Visual System */}
+                      <div className="orbit-core-system" style={{
                         position: 'relative',
-                        width: '120px',
-                        height: '120px',
-                        margin: '0 auto 2rem auto',
+                        width: '240px',
+                        height: '240px',
+                        margin: '0 auto 1.5rem auto',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)'
                       }}>
+                        {/* Outer Orbit Track */}
+                        <div style={{
+                          position: 'absolute',
+                          width: '220px',
+                          height: '220px',
+                          borderRadius: '50%',
+                          border: '1px dashed rgba(139, 92, 246, 0.15)',
+                          animation: 'spin 20s linear infinite'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '50%',
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#8b5cf6',
+                            boxShadow: '0 0 10px #8b5cf6',
+                            transform: 'translateX(-50%)'
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '8px',
+                            left: '50%',
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: '#ec4899',
+                            boxShadow: '0 0 8px #ec4899',
+                            transform: 'translateX(-50%)'
+                          }} />
+                        </div>
+
+                        {/* Middle Orbit Track */}
+                        <div style={{
+                          position: 'absolute',
+                          width: '160px',
+                          height: '160px',
+                          borderRadius: '50%',
+                          border: '1px dashed rgba(59, 130, 246, 0.2)',
+                          animation: 'spin-reverse 15s linear infinite'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '-4px',
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#3b82f6',
+                            boxShadow: '0 0 10px #3b82f6',
+                            transform: 'translateY(-50%)'
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            right: '-4px',
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: '#10b981',
+                            boxShadow: '0 0 8px #10b981',
+                            transform: 'translateY(-50%)'
+                          }} />
+                        </div>
+
+                        {/* Inner Orbit Track */}
                         <div style={{
                           position: 'absolute',
                           width: '100px',
                           height: '100px',
                           borderRadius: '50%',
-                          border: '2px dashed rgba(59, 130, 246, 0.3)',
-                          animation: 'spin 12s linear infinite'
-                        }} />
-                        <div style={{
-                          position: 'absolute',
-                          width: '80px',
-                          height: '80px',
+                          border: '1px dashed rgba(255, 255, 255, 0.05)',
+                          animation: 'spin 10s linear infinite'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            width: '5px',
+                            height: '5px',
+                            borderRadius: '50%',
+                            background: '#60a5fa',
+                            boxShadow: '0 0 6px #60a5fa'
+                          }} />
+                        </div>
+
+                        {/* Glowing CORE */}
+                        <div className="orbit-core-glow" style={{
+                          position: 'relative',
+                          width: '60px',
+                          height: '60px',
                           borderRadius: '50%',
-                          border: '1px dashed rgba(139, 92, 246, 0.4)',
-                          animation: 'spin-reverse 8s linear infinite'
-                        }} />
-                        <div style={{
-                          width: '50px',
-                          height: '50px',
-                          borderRadius: '50%',
-                          background: 'radial-gradient(circle, #3b82f6 0%, #8b5cf6 100%)',
-                          boxShadow: '0 0 35px rgba(59, 130, 246, 0.8)',
-                          animation: 'pulse 2s infinite alternate'
-                        }} />
+                          background: 'radial-gradient(circle, #3b82f6 0%, #8b5cf6 60%, #050816 100%)',
+                          boxShadow: '0 0 35px rgba(59, 130, 246, 0.8), 0 0 70px rgba(139, 92, 246, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          animation: 'pulseCore 4s infinite alternate'
+                        }}>
+                          <Orbit size={24} style={{ color: '#fff', animation: 'spin 8s linear infinite' }} />
+                        </div>
                       </div>
 
-                      <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.5rem', marginBottom: '0.5rem' }}>
-                        Your AI marketing team is standing by.
+                      <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.4rem', marginBottom: '0.5rem', color: '#fff' }}>
+                        Your AI Marketing Team Is Standing By.
                       </h3>
-                      <p style={{ color: '#9ca3af', fontSize: '0.85rem', maxWidth: '420px', lineHeight: 1.5 }}>
-                        Describe a goal and ORBIT will coordinate Polaris, Nova, Vega, and Atlas to deploy targeted growth operations.
+                      <p style={{ color: '#9ca3af', fontSize: '0.82rem', maxWidth: '420px', lineHeight: 1.5 }}>
+                        Describe a growth goal and ORBIT will transform it into action by coordinating Polaris, Nova, Vega, and Atlas.
                       </p>
                     </div>
                   )}
@@ -1039,7 +1386,8 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '0.25rem',
-                        animation: 'fadeIn 0.3s ease'
+                        animation: 'fadeIn 0.3s ease',
+                        width: msg.sender === 'orbit' ? '100%' : 'auto'
                       }}
                     >
                       <div style={{ 
@@ -1078,75 +1426,206 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                           {msg.text}
                         </div>
                       ) : (
+                        /* PREMIUM MISSION OUTCOME CARD */
                         <div style={{
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--card-border)',
-                          borderRadius: '12px 12px 12px 0',
-                          padding: '1.25rem',
-                          width: '100%',
-                          minWidth: '320px',
+                          background: 'rgba(11, 17, 32, 0.8)',
+                          border: '1px solid rgba(59, 130, 246, 0.25)',
+                          borderRadius: '16px',
+                          padding: '1.5rem',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '1rem'
+                          gap: '1.25rem',
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(59, 130, 246, 0.1)',
+                          animation: 'fadeIn 0.5s ease',
+                          width: '100%'
                         }}>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                            Mission accepted and executed. The cohort parameters have been locked.
+                          {/* Card Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: '#10b981',
+                              letterSpacing: '0.1em',
+                              fontFamily: "'Space Grotesk', sans-serif"
+                            }}>
+                              🏆 MISSION OUTCOME
+                            </span>
+                            <span style={{
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              color: '#10b981',
+                              fontSize: '0.65rem',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px',
+                              fontWeight: 600
+                            }}>
+                              CONFIDENCE: {msg.data.confidence}
+                            </span>
                           </div>
 
-                          {/* MISSION METRIC SUMMARY TABLE */}
+                          {/* Premium Metric Grid */}
                           <div style={{
-                            background: 'var(--bg-primary)',
-                            border: '1px solid var(--card-border)',
-                            borderRadius: '8px',
-                            padding: '1rem',
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(4, 1fr)',
-                            gap: '0.75rem',
-                            textAlign: 'center'
+                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            gap: '1rem',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            paddingBottom: '1.25rem'
                           }}>
-                            <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Opportunity</div>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.25rem' }}>
+                            {/* METRIC 1: REVENUE */}
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '0.75rem'
+                            }}>
+                              <div style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase' }}>Revenue Opportunity</div>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#10b981', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.2rem' }}>
                                 {msg.data.revenue}
                               </div>
                             </div>
-                            <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cohort Size</div>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#3b82f6', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.25rem' }}>
+
+                            {/* METRIC 2: COHORT */}
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '0.75rem'
+                            }}>
+                              <div style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase' }}>Audience Size</div>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#3b82f6', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.2rem' }}>
                                 {msg.data.audience}
                               </div>
                             </div>
-                            <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Channel</div>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#a78bfa', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.25rem' }}>
-                                {msg.data.channel}
+
+                            {/* METRIC 3: OPEN RATE */}
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '0.75rem'
+                            }}>
+                              <div style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase' }}>Expected Open Rate</div>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#a78bfa', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.2rem' }}>
+                                74%
                               </div>
                             </div>
-                            <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Confidence</div>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ec4899', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.25rem' }}>
-                                {msg.data.confidence}
+
+                            {/* METRIC 4: CONVERSION */}
+                            <div style={{
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '0.75rem'
+                            }}>
+                              <div style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase' }}>Predicted Conversion</div>
+                              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#ec4899', fontFamily: "'Space Grotesk', sans-serif", marginTop: '0.2rem' }}>
+                                12.4%
                               </div>
                             </div>
                           </div>
 
-                          {/* CAMPAIGN TEMPLATE PREVIEW */}
+                          {/* CHANNEL DETAIL */}
                           <div style={{
-                            background: 'var(--button-hover-bg)',
-                            border: '1px dashed var(--card-border)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'rgba(59, 130, 246, 0.05)',
+                            border: '1px solid rgba(59, 130, 246, 0.15)',
                             borderRadius: '8px',
-                            padding: '0.85rem',
-                            fontStyle: 'italic',
-                            fontSize: '0.78rem',
-                            color: 'var(--text-secondary)',
-                            lineHeight: 1.45
+                            padding: '0.75rem'
                           }}>
-                            "{msg.data.copy}"
+                            <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
+                              Recommended Channel:
+                            </span>
+                            <span style={{
+                              background: '#22c55e',
+                              color: '#fff',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              boxShadow: '0 0 10px rgba(34, 197, 94, 0.4)'
+                            }}>
+                              <MessageCircle size={12} fill="#fff" /> {msg.data.channel}
+                            </span>
                           </div>
+
+                          {/* Campaign Copy Preview */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '0.65rem', color: '#9ca3af', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                              Creative Content Draft
+                            </span>
+                            <div style={{
+                              background: '#070a13',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '1rem',
+                              fontStyle: 'italic',
+                              fontSize: '0.8rem',
+                              color: '#e5e7eb',
+                              lineHeight: 1.5,
+                              borderLeft: '3px solid #8b5cf6'
+                            }}>
+                              "{msg.data.copy}"
+                            </div>
+                          </div>
+
+                          {/* Explainability Drawer Button */}
+                          <button
+                            onClick={() => setExpandedOutcomeIndex(prev => (prev === idx ? -1 : idx))}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#60a5fa',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              alignSelf: 'flex-start',
+                              padding: '0',
+                              fontWeight: 600,
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            <span>{expandedOutcomeIndex === idx ? '▼' : '►'} Why {msg.data.channel}?</span>
+                          </button>
+
+                          {/* Explainability Drawer Content */}
+                          {expandedOutcomeIndex === idx && (
+                            <div style={{
+                              background: 'rgba(11, 17, 32, 0.5)',
+                              border: '1px solid rgba(255, 255, 255, 0.05)',
+                              borderRadius: '8px',
+                              padding: '0.85rem 1rem',
+                              fontSize: '0.75rem',
+                              color: '#9ca3af',
+                              lineHeight: 1.5,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.5rem',
+                              animation: 'fadeIn 0.25s ease'
+                            }}>
+                              <div style={{ fontWeight: 600, color: '#e5e7eb', fontFamily: 'monospace' }}>
+                                ORBIT selected {msg.data.channel} because:
+                              </div>
+                              <ul style={{ paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                <li>• 73% historical open rate on WhatsApp for this cluster</li>
+                                <li>• Highest engagement velocity during evening peaks</li>
+                                <li>• Lowest projected churn risk and unsubscribe frequency</li>
+                              </ul>
+                              <div style={{ borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                                <span>Confidence Matrix:</span>
+                                <span style={{ color: '#10b981' }}>91% STABLE</span>
+                              </div>
+                            </div>
+                          )}
 
                           {/* ACTIONS */}
                           {!msg.autonomous && (
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                               <button 
                                 onClick={() => handleLaunchCampaign(msg.data)}
                                 disabled={campaignLaunched}
@@ -1154,15 +1633,28 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                                   background: campaignLaunched ? '#10b981' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                                   border: 'none',
                                   color: '#fff',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '6px',
+                                  padding: '0.6rem 1.2rem',
+                                  borderRadius: '8px',
                                   fontSize: '0.75rem',
-                                  fontWeight: 600,
+                                  fontWeight: 700,
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '0.4rem',
+                                  boxShadow: campaignLaunched ? 'none' : '0 0 15px rgba(59, 130, 246, 0.4)',
                                   transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={e => {
+                                  if (!campaignLaunched) {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = '0 0 20px rgba(139, 92, 246, 0.6)';
+                                  }
+                                }}
+                                onMouseLeave={e => {
+                                  if (!campaignLaunched) {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.4)';
+                                  }
                                 }}
                               >
                                 {campaignLaunched ? (
@@ -1179,14 +1671,17 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                                 onClick={() => alert(`Reviewing assets: WhatsApp layout generated with dynamic vouchers...`)}
                                 style={{
                                   background: 'rgba(255,255,255,0.03)',
-                                  border: '1px solid rgba(255,255,255,0.06)',
+                                  border: '1px solid rgba(255,255,255,0.08)',
                                   color: '#e5e7eb',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '6px',
+                                  padding: '0.6rem 1.2rem',
+                                  borderRadius: '8px',
                                   fontSize: '0.75rem',
                                   fontWeight: 600,
-                                  cursor: 'pointer'
+                                  cursor: 'pointer',
+                                  transition: 'all 0.25s'
                                 }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                               >
                                 Preview Campaign
                               </button>
@@ -1196,12 +1691,15 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                                   background: 'transparent',
                                   border: '1px solid transparent',
                                   color: '#9ca3af',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '6px',
+                                  padding: '0.6rem 1.2rem',
+                                  borderRadius: '8px',
                                   fontSize: '0.75rem',
                                   fontWeight: 500,
-                                  cursor: 'pointer'
+                                  cursor: 'pointer',
+                                  transition: 'all 0.25s'
                                 }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
                               >
                                 Refine Audience
                               </button>
@@ -1217,7 +1715,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                     <div style={{
                       alignSelf: 'flex-start',
                       width: '100%',
-                      background: 'rgba(11, 17, 32, 0.4)',
+                      background: 'rgba(11, 17, 32, 0.45)',
                       border: '1px solid rgba(255, 255, 255, 0.05)',
                       borderRadius: '12px',
                       padding: '1.25rem',
@@ -1227,36 +1725,107 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                       animation: 'fadeIn 0.3s ease'
                     }}>
                       
-                      {/* STAGE 1: EXPANDABLE THINKING */}
+                      {/* REDESIGNED AI REASONING TIMELINE */}
                       {currentStep === 1 && (
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                            <div className="spinner-mini" style={{
-                              width: '12px',
-                              height: '12px',
-                              border: '2px solid rgba(59,130,246,0.2)',
-                              borderTop: '2px solid #3b82f6',
-                              borderRadius: '50%',
-                              animation: 'spin 0.8s linear infinite'
-                            }} />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', fontFamily: 'monospace' }}>
-                              Thinking... ({Math.floor(reasoningProgress)}%)
+                        <div style={{
+                          background: 'rgba(11, 17, 32, 0.75)',
+                          border: '1px solid rgba(59, 130, 246, 0.25)',
+                          borderRadius: '16px',
+                          padding: '1.5rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1.25rem',
+                          boxShadow: '0 0 25px rgba(59, 130, 246, 0.1)',
+                          animation: 'fadeIn 0.4s ease',
+                          width: '100%'
+                        }}>
+                          {/* Title Bar */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid rgba(255,255,255,0.08)',
+                            paddingBottom: '0.75rem'
+                          }}>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              fontFamily: "'Space Grotesk', sans-serif",
+                              color: '#eab308',
+                              letterSpacing: '0.1em'
+                            }}>
+                              ⚡ MISSION ACCEPTED
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontFamily: 'monospace',
+                              color: '#9ca3af'
+                            }}>
+                              INITIATING ENGINE...
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                          {/* Timeline List */}
+                          <div style={{
+                            position: 'relative',
+                            paddingLeft: '1.5rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                          }}>
+                            {/* Timeline connector line */}
+                            <div style={{
+                              position: 'absolute',
+                              left: '6px',
+                              top: '5px',
+                              bottom: '5px',
+                              width: '2px',
+                              background: 'linear-gradient(to bottom, #10b981 30%, rgba(255,255,255,0.05) 100%)',
+                              transition: 'all 0.5s'
+                            }} />
+
                             {presetQueries[activePresetIndex >= 0 ? activePresetIndex : 0].reasoning.map((stepName, idx) => {
                               const isCompleted = completedReasoningItems.includes(stepName);
+                              const isActive = !isCompleted && (idx === completedReasoningItems.length);
                               return (
                                 <div key={idx} style={{ 
                                   display: 'flex', 
                                   alignItems: 'center', 
-                                  gap: '0.5rem',
-                                  color: isCompleted ? '#10b981' : '#4b5563',
-                                  transition: 'color 0.3s'
+                                  gap: '0.75rem',
+                                  color: isCompleted ? '#10b981' : isActive ? '#60a5fa' : '#4b5563',
+                                  fontSize: '0.8rem',
+                                  fontFamily: 'monospace',
+                                  transition: 'all 0.3s'
                                 }}>
-                                  <span>{isCompleted ? '✓' : '●'}</span>
-                                  <span>{stepName}</span>
+                                  {/* Node dot */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    left: '1px',
+                                    width: '12px',
+                                    height: '12px',
+                                    borderRadius: '50%',
+                                    background: isCompleted ? '#10b981' : isActive ? '#3b82f6' : '#1f2937',
+                                    border: `2px solid ${isCompleted ? '#10b981' : isActive ? '#60a5fa' : 'rgba(255,255,255,0.08)'}`,
+                                    boxShadow: isCompleted 
+                                      ? '0 0 8px #10b981' 
+                                      : isActive 
+                                      ? '0 0 8px #3b82f6' 
+                                      : 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 2,
+                                    transition: 'all 0.3s'
+                                  }}>
+                                    {isCompleted && <span style={{ fontSize: '0.5rem', color: '#fff', fontWeight: 'bold' }}>✓</span>}
+                                  </div>
+
+                                  <span style={{ fontWeight: isActive ? 600 : 400 }}>{stepName}</span>
+                                  {isActive && (
+                                    <span style={{ fontSize: '0.65rem', color: '#3b82f6', opacity: 0.8 }} className="blink">
+                                      [PROCESSING...]
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}
@@ -1266,7 +1835,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
 
                       {/* STAGE 2: SYSTEM EXECUTION BANNER */}
                       {currentStep === 2 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', width: '100%' }}>
                           {/* Animated mission banner */}
                           <div style={{
                             background: 'rgba(59, 130, 246, 0.08)',
@@ -1280,7 +1849,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                             letterSpacing: '0.1em',
                             color: '#60a5fa'
                           }}>
-                            MISSION RECEIVED: Analyzing Customer Universe...
+                            MISSION IN PROGRESS: SYNCING COOPERATIVE NODES
                           </div>
 
                           {/* Agent step log cards */}
@@ -1304,7 +1873,6 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                           </div>
                         </div>
                       )}
-
                     </div>
                   )}
 
@@ -2128,148 +2696,297 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
             marginBottom: '1rem',
             fontWeight: 600
           }}>
-            Agent Activity
+            Agent Telemetry
           </h4>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* Polaris Card */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {/* Redesigned Polaris Card */}
             <div style={{
-              background: 'var(--card-bg)',
+              background: 'rgba(11, 17, 32, 0.7)',
               border: `1px solid ${agentGlow.polaris ? '#3b82f6' : 'var(--card-border)'}`,
               borderRadius: '12px',
-              padding: '0.85rem',
-              boxShadow: agentGlow.polaris ? '0 0 15px rgba(59, 130, 246, 0.15)' : 'none',
-              transition: 'all 0.3s'
+              padding: '1rem',
+              transition: 'all 0.3s',
+              animation: agentGlow.polaris ? 'pulseGlowBlue 1.5s infinite alternate' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Compass size={14} style={{ color: '#3b82f6' }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Polaris</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Compass size={16} style={{ color: '#3b82f6' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.02em', color: '#fff' }}>Polaris</span>
                 </div>
                 <span style={{ 
                   fontSize: '0.65rem', 
-                  color: agentProgress.polaris === 'Analyzing segments' ? '#60a5fa' : agentProgress.polaris === 'Complete' ? '#10b981' : 'var(--text-secondary)'
+                  fontWeight: 700,
+                  color: agentTelemetry.polaris.status === 'Active' ? '#60a5fa' : agentTelemetry.polaris.status === 'Complete' ? '#10b981' : '#9ca3af',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}>
-                  {agentProgress.polaris === 'Analyzing segments' ? 'Analyzing' : agentProgress.polaris}
+                  {agentTelemetry.polaris.status === 'Active' && (
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#3b82f6',
+                      boxShadow: '0 0 6px #3b82f6',
+                      animation: 'pulse 1s infinite'
+                    }} />
+                  )}
+                  {agentTelemetry.polaris.status}
                 </span>
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Audience Intelligence</div>
-              {agentProgress.polaris === 'Analyzing segments' && (
-                <div style={{ width: '100%', height: '2px', background: 'var(--card-border)', borderRadius: '2px', marginTop: '0.5rem', overflow: 'hidden' }}>
-                  <div style={{ width: '40%', height: '100%', background: '#3b82f6', borderRadius: '2px', animation: 'progressPulse 1.2s infinite' }} />
+              <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>Audience Intelligence</div>
+
+              <div style={{ 
+                fontSize: '0.72rem', 
+                color: '#e5e7eb',
+                fontFamily: 'monospace',
+                background: '#070a13',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.03)'
+              }}>
+                Task: {agentTelemetry.polaris.task}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
+                  <span>Progress: {agentTelemetry.polaris.progress}%</span>
+                  <span>Confidence: {agentTelemetry.polaris.confidence}</span>
                 </div>
-              )}
+                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${agentTelemetry.polaris.progress}%`, height: '100%', background: '#3b82f6', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: '#6b7280', fontFamily: 'monospace', display: 'flex', gap: '0.2rem' }}>
+                <span>&gt; Reasoning:</span>
+                <span style={{ color: '#9ca3af' }}>{agentTelemetry.polaris.reasoning}</span>
+              </div>
             </div>
 
-            {/* Nova Card */}
+            {/* Redesigned Nova Card */}
             <div style={{
-              background: 'var(--card-bg)',
+              background: 'rgba(11, 17, 32, 0.7)',
               border: `1px solid ${agentGlow.nova ? '#8b5cf6' : 'var(--card-border)'}`,
               borderRadius: '12px',
-              padding: '0.85rem',
-              boxShadow: agentGlow.nova ? '0 0 15px rgba(139, 92, 246, 0.15)' : 'none',
-              transition: 'all 0.3s'
+              padding: '1rem',
+              transition: 'all 0.3s',
+              animation: agentGlow.nova ? 'pulseGlowPurple 1.5s infinite alternate' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Sparkles size={14} style={{ color: '#8b5cf6' }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Nova</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Sparkles size={16} style={{ color: '#8b5cf6' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.02em', color: '#fff' }}>Nova</span>
                 </div>
                 <span style={{ 
                   fontSize: '0.65rem', 
-                  color: agentProgress.nova === 'Drafting copy' ? '#a78bfa' : agentProgress.nova === 'Complete' ? '#10b981' : 'var(--text-secondary)'
+                  fontWeight: 700,
+                  color: agentTelemetry.nova.status === 'Active' ? '#a78bfa' : agentTelemetry.nova.status === 'Complete' ? '#10b981' : '#9ca3af',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}>
-                  {agentProgress.nova === 'Drafting copy' ? 'Drafting campaign' : agentProgress.nova}
+                  {agentTelemetry.nova.status === 'Active' && (
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#8b5cf6',
+                      boxShadow: '0 0 6px #8b5cf6',
+                      animation: 'pulse 1s infinite'
+                    }} />
+                  )}
+                  {agentTelemetry.nova.status}
                 </span>
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Campaign Creator</div>
-              {agentProgress.nova === 'Drafting copy' && (
-                <div style={{ display: 'flex', gap: '2px', marginTop: '0.4rem' }}>
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#8b5cf6', animation: 'typing 1s infinite alternate' }} />
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#8b5cf6', animation: 'typing 1s infinite alternate', animationDelay: '0.2s' }} />
-                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#8b5cf6', animation: 'typing 1s infinite alternate', animationDelay: '0.4s' }} />
+              <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>Campaign Creator</div>
+
+              <div style={{ 
+                fontSize: '0.72rem', 
+                color: '#e5e7eb',
+                fontFamily: 'monospace',
+                background: '#070a13',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.03)'
+              }}>
+                Task: {agentTelemetry.nova.task}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
+                  <span>Progress: {agentTelemetry.nova.progress}%</span>
+                  <span>Confidence: {agentTelemetry.nova.confidence}</span>
                 </div>
-              )}
+                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${agentTelemetry.nova.progress}%`, height: '100%', background: '#8b5cf6', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: '#6b7280', fontFamily: 'monospace', display: 'flex', gap: '0.2rem' }}>
+                <span>&gt; Reasoning:</span>
+                <span style={{ color: '#9ca3af' }}>{agentTelemetry.nova.reasoning}</span>
+              </div>
             </div>
 
-            {/* Vega Card */}
+            {/* Redesigned Vega Card */}
             <div style={{
-              background: 'var(--card-bg)',
+              background: 'rgba(11, 17, 32, 0.7)',
               border: `1px solid ${agentGlow.vega ? '#0ea5e9' : 'var(--card-border)'}`,
               borderRadius: '12px',
-              padding: '0.85rem',
-              boxShadow: agentGlow.vega ? '0 0 15px rgba(14, 165, 233, 0.15)' : 'none',
-              transition: 'all 0.3s'
+              padding: '1rem',
+              transition: 'all 0.3s',
+              animation: agentGlow.vega ? 'pulseGlowSky 1.5s infinite alternate' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <TrendingUp size={14} style={{ color: '#0ea5e9' }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Vega</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <TrendingUp size={16} style={{ color: '#0ea5e9' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.02em', color: '#fff' }}>Vega</span>
                 </div>
                 <span style={{ 
                   fontSize: '0.65rem', 
-                  color: agentProgress.vega === 'Forecasting revenue' ? '#38bdf8' : agentProgress.vega === 'Complete' ? '#10b981' : 'var(--text-secondary)'
+                  fontWeight: 700,
+                  color: agentTelemetry.vega.status === 'Active' ? '#38bdf8' : agentTelemetry.vega.status === 'Complete' ? '#10b981' : '#9ca3af',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
                 }}>
-                  {agentProgress.vega === 'Forecasting revenue' ? 'Forecasting revenue' : agentProgress.vega}
+                  {agentTelemetry.vega.status === 'Active' && (
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#0ea5e9',
+                      boxShadow: '0 0 6px #0ea5e9',
+                      animation: 'pulse 1s infinite'
+                    }} />
+                  )}
+                  {agentTelemetry.vega.status}
                 </span>
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Predictive Analytics</div>
-              
-              {/* Mini SVG Chart updating live */}
-              <div style={{ height: '24px', width: '100%', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>Predictive Analytics</div>
+
+              <div style={{ 
+                fontSize: '0.72rem', 
+                color: '#e5e7eb',
+                fontFamily: 'monospace',
+                background: '#070a13',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.03)'
+              }}>
+                Task: {agentTelemetry.vega.task}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
+                  <span>Progress: {agentTelemetry.vega.progress}%</span>
+                  <span>Confidence: {agentTelemetry.vega.confidence}</span>
+                </div>
+                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${agentTelemetry.vega.progress}%`, height: '100%', background: '#0ea5e9', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+
+              {/* Vega live chart telemetry */}
+              <div style={{ height: '28px', width: '100%', marginTop: '0.2rem', background: '#070a13', borderRadius: '6px', padding: '4px', border: '1px solid rgba(255,255,255,0.03)' }}>
                 <svg width="100%" height="100%" viewBox="0 0 200 24" preserveAspectRatio="none">
                   <path 
                     d={`M 0 24 L 0 ${24 - (vegaChartData[0]/4.5)} L 33 ${24 - (vegaChartData[1]/4.5)} L 66 ${24 - (vegaChartData[2]/4.5)} L 99 ${24 - (vegaChartData[3]/4.5)} L 132 ${24 - (vegaChartData[4]/4.5)} L 165 ${24 - (vegaChartData[5]/4.5)} L 200 ${24 - (vegaChartData[6]/4.5)}`}
                     fill="none" 
-                    stroke={agentGlow.vega ? '#0ea5e9' : 'var(--card-border)'} 
+                    stroke={agentGlow.vega ? '#0ea5e9' : 'rgba(255, 255, 255, 0.15)'} 
                     strokeWidth="1.5" 
+                    style={{ transition: 'stroke 0.3s' }}
                   />
                 </svg>
               </div>
+
+              <div style={{ fontSize: '0.65rem', color: '#6b7280', fontFamily: 'monospace', display: 'flex', gap: '0.2rem' }}>
+                <span>&gt; Reasoning:</span>
+                <span style={{ color: '#9ca3af' }}>{agentTelemetry.vega.reasoning}</span>
+              </div>
             </div>
 
-            {/* Atlas Card */}
+            {/* Redesigned Atlas Card */}
             <div style={{
-              background: 'var(--card-bg)',
+              background: 'rgba(11, 17, 32, 0.7)',
               border: `1px solid ${agentGlow.atlas ? '#ec4899' : 'var(--card-border)'}`,
               borderRadius: '12px',
-              padding: '0.85rem',
-              boxShadow: agentGlow.atlas ? '0 0 15px rgba(236, 72, 153, 0.15)' : 'none',
-              transition: 'all 0.3s'
+              padding: '1rem',
+              transition: 'all 0.3s',
+              animation: agentGlow.atlas ? 'pulseGlowPink 1.5s infinite alternate' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Cpu size={14} style={{ color: '#ec4899' }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Atlas</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Cpu size={16} style={{ color: '#ec4899' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.02em', color: '#fff' }}>Atlas</span>
                 </div>
                 <span style={{ 
                   fontSize: '0.65rem', 
-                  color: agentProgress.atlas === 'Syncing channels' ? '#f472b6' : agentProgress.atlas === 'Ready to launch' || agentProgress.atlas === 'Active dispatch' ? '#10b981' : 'var(--text-secondary)'
-                }}>
-                  {agentProgress.atlas === 'Syncing channels' ? 'Preparing launch' : agentProgress.atlas}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Campaign Operator</div>
-              {agentGlow.atlas && (
-                <div style={{
+                  fontWeight: 700,
+                  color: agentTelemetry.atlas.status === 'Active' ? '#f472b6' : agentTelemetry.atlas.status === 'Complete' ? '#10b981' : '#9ca3af',
+                  textTransform: 'uppercase',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.3rem',
-                  marginTop: '0.5rem',
-                  fontSize: '0.65rem',
-                  color: '#f472b6'
+                  gap: '0.3rem'
                 }}>
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: '#ec4899',
-                    boxShadow: '0 0 6px #ec4899',
-                    animation: 'pulse 0.8s infinite'
-                  }} />
-                  <span>SYSTEM PULSE ACTIVE</span>
+                  {agentTelemetry.atlas.status === 'Active' && (
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#ec4899',
+                      boxShadow: '0 0 6px #ec4899',
+                      animation: 'pulse 1s infinite'
+                    }} />
+                  )}
+                  {agentTelemetry.atlas.status}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>Campaign Operator</div>
+
+              <div style={{ 
+                fontSize: '0.72rem', 
+                color: '#e5e7eb',
+                fontFamily: 'monospace',
+                background: '#070a13',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.03)'
+              }}>
+                Task: {agentTelemetry.atlas.task}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
+                  <span>Progress: {agentTelemetry.atlas.progress}%</span>
+                  <span>Confidence: {agentTelemetry.atlas.confidence}</span>
                 </div>
-              )}
+                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${agentTelemetry.atlas.progress}%`, height: '100%', background: '#ec4899', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: '#6b7280', fontFamily: 'monospace', display: 'flex', gap: '0.2rem' }}>
+                <span>&gt; Reasoning:</span>
+                <span style={{ color: '#9ca3af' }}>{agentTelemetry.atlas.reasoning}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -2327,8 +3044,12 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
           to { transform: rotate(0deg); }
         }
         @keyframes pulse {
-          0% { opacity: 0.6; }
+          0% { opacity: 0.5; }
           100% { opacity: 1; }
+        }
+        @keyframes pulseCore {
+          0% { transform: scale(0.96); box-shadow: 0 0 35px rgba(59, 130, 246, 0.7), 0 0 70px rgba(139, 92, 246, 0.35); }
+          100% { transform: scale(1.04); box-shadow: 0 0 55px rgba(59, 130, 246, 0.95), 0 0 110px rgba(139, 92, 246, 0.65); }
         }
         @keyframes progressPulse {
           0% { transform: translateX(-100%); }
@@ -2341,6 +3062,32 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
         @keyframes bounceWave {
           0% { transform: scaleY(0.3); }
           100% { transform: scaleY(1.3); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(2px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-2px); }
+        }
+        @keyframes pulseGlowBlue {
+          0% { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 6px rgba(59, 130, 246, 0.1); }
+          100% { border-color: rgba(59, 130, 246, 0.85); box-shadow: 0 0 18px rgba(59, 130, 246, 0.4); }
+        }
+        @keyframes pulseGlowPurple {
+          0% { border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 6px rgba(139, 92, 246, 0.1); }
+          100% { border-color: rgba(139, 92, 246, 0.85); box-shadow: 0 0 18px rgba(139, 92, 246, 0.4); }
+        }
+        @keyframes pulseGlowSky {
+          0% { border-color: rgba(14, 165, 233, 0.3); box-shadow: 0 0 6px rgba(14, 165, 233, 0.1); }
+          100% { border-color: rgba(14, 165, 233, 0.85); box-shadow: 0 0 18px rgba(14, 165, 233, 0.4); }
+        }
+        @keyframes pulseGlowPink {
+          0% { border-color: rgba(236, 72, 153, 0.3); box-shadow: 0 0 6px rgba(236, 72, 153, 0.1); }
+          100% { border-color: rgba(236, 72, 153, 0.85); box-shadow: 0 0 18px rgba(236, 72, 153, 0.4); }
         }
         .spin-slow {
           animation: spin 3s linear infinite;
@@ -2368,11 +3115,181 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
           left: 1px;
           transition: all 0.3s;
         }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
+        .blink {
+          animation: pulse 0.8s infinite alternate;
         }
       `}</style>
+
+      {/* CINEMATIC LAUNCH SEQUENCE OVERLAY */}
+      {launchSequenceActive && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(5, 8, 22, 0.96)',
+          backdropFilter: 'blur(15px)',
+          zIndex: 999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontFamily: 'monospace',
+          animation: 'fadeIn 0.4s ease'
+        }}>
+          {/* Animated Grid overlay */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.1) 1.5px, transparent 1.5px)',
+            backgroundSize: '30px 30px',
+            opacity: 0.3,
+            pointerEvents: 'none'
+          }} />
+
+          {/* Glowing Vector radar ring */}
+          <div style={{
+            position: 'absolute',
+            width: '450px',
+            height: '450px',
+            borderRadius: '50%',
+            border: '1px solid rgba(59, 130, 246, 0.1)',
+            boxShadow: '0 0 100px rgba(59, 130, 246, 0.05)',
+            animation: 'spin 30s linear infinite',
+            pointerEvents: 'none'
+          }} />
+
+          {/* Telemetry Console Frame */}
+          <div style={{
+            background: 'rgba(11, 17, 32, 0.85)',
+            border: '2px solid rgba(59, 130, 246, 0.3)',
+            boxShadow: '0 0 50px rgba(59, 130, 246, 0.2), inset 0 0 30px rgba(59, 130, 246, 0.1)',
+            borderRadius: '20px',
+            padding: '3rem',
+            width: '90%',
+            maxWidth: '560px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2rem',
+            textAlign: 'center',
+            position: 'relative'
+          }}>
+            {/* Corner decorations */}
+            <div style={{ position: 'absolute', top: '10px', left: '10px', width: '20px', height: '20px', borderTop: '2px solid #3b82f6', borderLeft: '2px solid #3b82f6' }} />
+            <div style={{ position: 'absolute', top: '10px', right: '10px', width: '20px', height: '20px', borderTop: '2px solid #3b82f6', borderRight: '2px solid #3b82f6' }} />
+            <div style={{ position: 'absolute', bottom: '10px', left: '10px', width: '20px', height: '20px', borderBottom: '2px solid #3b82f6', borderLeft: '2px solid #3b82f6' }} />
+            <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '20px', height: '20px', borderBottom: '2px solid #3b82f6', borderRight: '2px solid #3b82f6' }} />
+
+            {/* Launch Heading */}
+            <div>
+              <h2 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '1.75rem',
+                color: '#fff',
+                letterSpacing: '0.15em',
+                textShadow: '0 0 15px rgba(59, 130, 246, 0.8)',
+                marginBottom: '0.5rem'
+              }}>
+                {launchStep === 6 ? 'LAUNCH COMPLETED' : 'LAUNCH PROTOCOL'}
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: '#60a5fa', letterSpacing: '0.2em' }}>
+                {launchStep === 0 && 'INITIATING CORE DISPATCH ENGINE...'}
+                {launchStep >= 1 && launchStep <= 5 && 'EXECUTING SEQUENTIAL MATRIX CHECKLIST...'}
+                {launchStep === 6 && 'ALL SYSTEMS ENGAGED - DISPATCH ACTIVE'}
+              </p>
+            </div>
+
+            {/* Telemetry Steps */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              textAlign: 'left',
+              padding: '1rem',
+              background: '#070a13',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              fontFamily: 'monospace'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: launchStep >= 1 ? '#10b981' : '#4b5563' }}>
+                <span>[01] AUDIENCE COHORT LOCK</span>
+                <span>{launchStep >= 1 ? '✓ SECURED' : '● PENDING'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: launchStep >= 2 ? '#10b981' : '#4b5563' }}>
+                <span>[02] CAMPAIGN ASSET VERIFICATION</span>
+                <span>{launchStep >= 2 ? '✓ VERIFIED' : '● PENDING'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: launchStep >= 3 ? '#10b981' : '#4b5563' }}>
+                <span>[03] GATEWAY CHANNEL ALLOCATION</span>
+                <span>{launchStep >= 3 ? '✓ ROUTED' : '● PENDING'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: launchStep >= 4 ? '#10b981' : '#4b5563' }}>
+                <span>[04] DISPATCH QUEUE INTEGRITY</span>
+                <span>{launchStep >= 4 ? '✓ STABLE' : '● PENDING'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: launchStep >= 5 ? '#10b981' : '#4b5563' }}>
+                <span>[05] ATLAS CORE DISPATCH CONTROLLER</span>
+                <span>{launchStep >= 5 ? '✓ DISPATCHING' : '● PENDING'}</span>
+              </div>
+            </div>
+
+            {/* Big Launch Banner or Progress Bar */}
+            <div style={{ marginTop: '0.5rem' }}>
+              {launchStep === 6 ? (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '2px solid #10b981',
+                  borderRadius: '8px',
+                  padding: '1.25rem',
+                  color: '#10b981',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.2em',
+                  boxShadow: '0 0 25px rgba(16, 185, 129, 0.4)'
+                }}>
+                  CAMPAIGN ACTIVE
+                </div>
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '6px',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '99px',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: `${(launchStep / 6) * 100}%`,
+                    height: '100%',
+                    background: 'linear-gradient(to right, #3b82f6, #8b5cf6)',
+                    boxShadow: '0 0 10px #3b82f6',
+                    borderRadius: '99px',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+              )}
+            </div>
+
+            {/* Footer Telemetry Coordinates */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.65rem',
+              color: '#6b7280',
+              fontFamily: 'monospace'
+            }}>
+              <span>GATEWAY_ALT_INDEX: 4022</span>
+              <span>REF_LATENCY: {(Math.random() * 20 + 10).toFixed(2)}ms</span>
+              <span>SYS_COORDS: 82.02N / 120.4W</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
