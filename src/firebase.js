@@ -13,10 +13,39 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app = null;
+let auth = null;
+let db = null;
 
-// Initialize Services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+try {
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } else {
+    console.warn("Firebase API key is missing. Using mock services for stability.");
+    auth = {
+      currentUser: null,
+      onAuthStateChanged: (callback) => {
+        callback(null);
+        return () => {};
+      },
+      signOut: async () => {}
+    };
+    db = {};
+  }
+} catch (e) {
+  console.error("Firebase initialization failed:", e);
+  auth = {
+    currentUser: null,
+    onAuthStateChanged: (callback) => {
+      callback(null);
+      return () => {};
+    },
+    signOut: async () => {}
+  };
+  db = {};
+}
+
+export { auth, db };
 export default app;
