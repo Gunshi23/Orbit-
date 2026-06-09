@@ -2,6 +2,7 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 const GEMINI_MODEL = "gemini-1.5-flash";
 
 export async function generateGrowthMission(userPrompt) {
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   
   const systemPrompt = `You are the AI core of ORBIT, a futuristic AI-native marketing operating system.
@@ -38,12 +39,16 @@ Example JSON output structure:
   "copy": "Hey {first_name}! We missed you. We noticed it’s been a while since your last purchase. Here is a custom 15% off voucher valid for the next 48 hours. Tap here to redeem: orb.it/vip"
 }`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
+      signal: controller.signal,
       body: JSON.stringify({
         contents: [
           {
@@ -56,6 +61,8 @@ Example JSON output structure:
         ]
       })
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Gemini API error: ${response.statusText}`);
@@ -105,9 +112,13 @@ Example JSON output structure:
 }
 
 export async function generateVoiceScript(voiceModel, textInput) {
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const systemPrompt = `You are a script writer for synthetic voice systems in ORBIT.
 Given a voice model name ("${voiceModel}") and a text prompt, write a highly engaging, professional, and natural audio script that the synthetic voice model should read. Keep it concise, natural, and under 50 words. Do not output anything other than the raw spoken script.`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   try {
     const response = await fetch(endpoint, {
@@ -115,6 +126,7 @@ Given a voice model name ("${voiceModel}") and a text prompt, write a highly eng
       headers: {
         "Content-Type": "application/json"
       },
+      signal: controller.signal,
       body: JSON.stringify({
         contents: [
           {
@@ -127,6 +139,8 @@ Given a voice model name ("${voiceModel}") and a text prompt, write a highly eng
         ]
       })
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Gemini API error: ${response.statusText}`);
