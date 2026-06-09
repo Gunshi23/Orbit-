@@ -1,10 +1,20 @@
+import { GoogleGenAI } from "@google/genai";
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+// Initialize GoogleGenAI SDK with the API key.
+// In browser/client environments, the key must be passed explicitly.
+let ai = null;
+try {
+  if (GEMINI_API_KEY) {
+    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  }
+} catch (e) {
+  console.error("GoogleGenAI SDK initialization failed:", e);
+}
 
 export async function generateGrowthMission(userPrompt) {
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-  
   const systemPrompt = `You are the AI core of ORBIT, a futuristic AI-native marketing operating system.
 Given a growth mission request from the user, analyze it and return a strictly valid JSON object. Do NOT wrap it in markdown block tags (e.g. do not use \`\`\`json). The JSON must have the following keys:
 - "prompt": the original user request
@@ -39,37 +49,22 @@ Example JSON output structure:
   "copy": "Hey {first_name}! We missed you. We noticed it’s been a while since your last purchase. Here is a custom 15% off voucher valid for the next 48 hours. Tap here to redeem: orb.it/vip"
 }`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
-
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${systemPrompt}\n\nUser Prompt: "${userPrompt}"`
-              }
-            ]
-          }
-        ]
-      })
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+    if (!ai) {
+      throw new Error("GoogleGenAI SDK is not initialized (API Key is missing).");
     }
 
-    const data = await response.json();
-    let textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const apiPromise = ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: `${systemPrompt}\n\nUser Prompt: "${userPrompt}"`,
+    });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini API request timed out")), 4000)
+    );
+
+    const response = await Promise.race([apiPromise, timeoutPromise]);
+    let textResult = response.text || "";
     
     // Clean up potential markdown formatting wrapping the JSON
     textResult = textResult.trim();
@@ -112,42 +107,25 @@ Example JSON output structure:
 }
 
 export async function generateVoiceScript(voiceModel, textInput) {
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const systemPrompt = `You are a script writer for synthetic voice systems in ORBIT.
 Given a voice model name ("${voiceModel}") and a text prompt, write a highly engaging, professional, and natural audio script that the synthetic voice model should read. Keep it concise, natural, and under 50 words. Do not output anything other than the raw spoken script.`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
-
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${systemPrompt}\n\nInput: "${textInput}"`
-              }
-            ]
-          }
-        ]
-      })
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+    if (!ai) {
+      throw new Error("GoogleGenAI SDK is not initialized.");
     }
 
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || textInput;
+    const apiPromise = ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: `${systemPrompt}\n\nInput: "${textInput}"`,
+    });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini Voice API request timed out")), 4000)
+    );
+
+    const response = await Promise.race([apiPromise, timeoutPromise]);
+    return response.text?.trim() || textInput;
   } catch (err) {
     console.error("Gemini Voice synthesis fallback:", err);
     return `Hello! We've noticed your interest in ORBIT. Here is your customized audio briefing regarding: ${textInput}`;
