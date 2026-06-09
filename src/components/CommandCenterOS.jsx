@@ -993,7 +993,9 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
         <div style={{
           borderBottom: '1px solid var(--card-border)',
           background: 'rgba(11, 17, 32, 0.9)',
-          padding: '0.95rem 1.5rem',
+          height: '75px',
+          padding: '0 1.5rem',
+          boxSizing: 'border-box',
           display: 'grid',
           gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr',
           gap: '1rem',
@@ -1076,7 +1078,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
           </div>
 
           {/* Column 5: Time Remaining */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2,rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-end' }}>
             <span style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               EST. COMPLETION
             </span>
@@ -1128,95 +1130,19 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
 
 
         {/* SUB-TABS ROUTING SCREEN */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{
+          flex: 1,
+          overflow: activeTab === 'command-center' ? 'hidden' : 'auto',
+          padding: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          minHeight: 0
+        }}>
           
           {/* TAB 1: FLAGSHIP COMMAND CENTER */}
           {activeTab === 'command-center' && (
             <>
-              {/* MISSION CARDS */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '1rem',
-                animation: 'fadeIn 0.5s ease'
-              }}>
-                {/* CARD 1 */}
-                <div style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: 'var(--panel-shadow)'
-                }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue Goal</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", margin: '0.25rem 0', color: '#10b981' }}>
-                    ₹5,00,000
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: '#10b981' }}>
-                    <span style={{ background: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>+12.4%</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>vs last target</span>
-                  </div>
-                </div>
-
-                {/* CARD 2 */}
-                <div style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: 'var(--panel-shadow)'
-                }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Pipelines</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", margin: '0.25rem 0', color: '#3b82f6' }}>
-                    4 Active
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: '#3b82f6' }}>
-                    <span style={{ background: 'rgba(59,130,246,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Nova Node</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>monitoring</span>
-                  </div>
-                </div>
-
-                {/* CARD 3 */}
-                <div style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: 'var(--panel-shadow)'
-                }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nodes Interacted</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", margin: '0.25rem 0', color: '#a78bfa' }}>
-                    1,482
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: '#a78bfa' }}>
-                    <span style={{ background: 'rgba(139,92,246,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Polaris Segment</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>reached</span>
-                  </div>
-                </div>
-
-                {/* CARD 4 */}
-                <div style={{
-                  background: 'var(--card-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: 'var(--panel-shadow)'
-                }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Growth Index</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", margin: '0.25rem 0', color: '#ec4899' }}>
-                    98.4%
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: '#ec4899' }}>
-                    <span style={{ background: 'rgba(236,72,153,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Optimal</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>efficiency index</span>
-                  </div>
-                </div>
-              </div>
-
               {/* CONVERSATION INTERFACE BODY */}
               <div style={{
                 flex: 1,
@@ -1226,7 +1152,8 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                 border: '1px solid var(--card-border)',
                 borderRadius: '16px',
                 padding: '1.5rem',
-                minHeight: '400px',
+                minHeight: 0,
+                overflow: 'hidden',
                 justifyContent: 'space-between',
                 position: 'relative'
               }}>
@@ -1238,7 +1165,7 @@ export default function CommandCenterOS({ theme, toggleTheme, onExit }) {
                   flexDirection: 'column',
                   gap: '1.5rem',
                   paddingRight: '0.5rem',
-                  maxHeight: '450px'
+                  minHeight: 0
                 }}>
                   {/* EMPTY STATE - GLOWING ORBIT CORE */}
                   {chatHistory.length === 0 && !isExecuting && (
