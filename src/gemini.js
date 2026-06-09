@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.5-flash";
 
 // Initialize GoogleGenAI SDK with the API key.
 // In browser/client environments, the key must be passed explicitly.
